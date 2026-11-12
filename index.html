@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Treasury Cash Dashboard</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f5f5f3; --surface:#fcfcfb; --line:#e4e3de; --grid:#ecebe7;
+  --ink:#0b0b0b; --ink2:#52514e; --ink3:#8a8984;
+  --recv:#2a78d6; --pay:#eb6834; --aqua:#1baf7a; --yellow:#eda100; --violet:#6250d6; --magenta:#e87ba4; --green:#008300;
+  --good:#1a7f4b; --bad:#c23b3a; --warn:#b97800; --neutral:#9a9993;
+}
+@media (prefers-color-scheme: dark){
+  :root{ color-scheme: dark;
+    --bg:#121211; --surface:#1a1a19; --line:#2e2e2b; --grid:#262624;
+    --ink:#f0efec; --ink2:#c3c2b7; --ink3:#8d8c85;
+    --recv:#3987e5; --pay:#d95926; --aqua:#199e70; --yellow:#c98500; --violet:#9085e9; --magenta:#d55181; --green:#008300;
+    --good:#4cc38a; --bad:#e66767; --warn:#e0a53a; --neutral:#6d6c66; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:20px 28px 8px;display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between}
+h1{font-size:20px;margin:0;font-weight:650;letter-spacing:-.01em}
+.sub{color:var(--ink2);font-size:12.5px}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 12px}
+.btn:hover{border-color:var(--ink3)}
+.filters{margin:0 28px;padding:12px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.filters label{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-right:8px}
+select{font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:4px 11px;font-size:13px}
+.chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.chip[aria-pressed=true]{border-color:var(--ink);background:var(--surface);font-weight:600}
+.chip[aria-pressed=false]{opacity:.55}
+nav{margin:16px 28px 0;display:flex;gap:4px;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;border-bottom:2px solid transparent;padding:9px 14px;color:var(--ink2)}
+nav button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--ink);font-weight:600}
+main{padding:18px 28px 48px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.tile .k{font-size:11.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em}
+.tile .v{font-size:23px;font-weight:650;margin-top:4px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tile .n{font-size:12px;color:var(--ink2);margin-top:2px}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.card h2{font-size:14px;margin:0 0 2px;font-weight:620}
+.card p.d{margin:0 0 10px;color:var(--ink2);font-size:12.5px}
+.chartbox{position:relative;height:300px}
+.wide{grid-column:1/-1}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child,td.l,th.l{text-align:left}
+th{font-size:11.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em;font-weight:600;position:sticky;top:0;background:var(--surface)}
+tr.tot td{font-weight:650;border-top:2px solid var(--ink3)}
+.scroll{overflow:auto;max-height:520px}
+.tag{display:inline-block;border-radius:6px;padding:1px 7px;font-size:12px;border:1px solid var(--line)}
+.tag.bad{color:var(--bad);border-color:var(--bad)} .tag.good{color:var(--good);border-color:var(--good)} .tag.warn{color:var(--warn);border-color:var(--warn)}
+.note{background:var(--surface);border:1px solid var(--warn);border-radius:10px;padding:8px 12px;margin:0 28px 10px;color:var(--ink2);font-size:13px}
+.empty{padding:60px 20px;text-align:center;color:var(--ink2)}
+input[type=search]{font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-width:220px}
+.legendrow{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin-bottom:6px}
+.legendrow span i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Treasury Cash Dashboard</h1>
+    <div class="sub" id="src"></div>
+  </div>
+  <div><button class="btn" id="refresh">Refresh from files</button></div>
+</header>
+<div id="notes"></div>
+<section class="filters" id="filters" hidden>
+  <div><label>Customers</label><span class="chips" id="chips"></span></div>
+  <div><label for="period">Period</label><select id="period"></select></div>
+</section>
+<nav role="tablist" id="tabs" hidden>
+  <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+  <button role="tab" data-tab="profit" aria-selected="false">Profitability</button>
+  <button role="tab" data-tab="wc" aria-selected="false">Working capital</button>
+  <button role="tab" data-tab="detail" aria-selected="false">Orders &amp; payables</button>
+</nav>
+<main id="main"></main>
+
+<script src="/vendor/chart.js/chart.umd.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const mLabel = k => MON[+k.slice(5,7)-1] + '-' + k.slice(2,4);
+const fmt = n => (n<0?'-':'') + '$' + Math.abs(Math.round(n)).toLocaleString('en-US');
+const fmtK = n => { const a=Math.abs(n), s=n<0?'-':''; return a>=1e6? s+'$'+(a/1e6).toFixed(2)+'M' : a>=1e4? s+'$'+(a/1e3).toFixed(0)+'K' : s+'$'+Math.round(a).toLocaleString('en-US'); };
+const pct = n => isFinite(n) ? (n*100).toFixed(1)+'%' : '-';
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cls = n => n<0 ? 'neg' : 'pos';
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const CUST_COLORS = ['--recv','--pay','--aqua','--yellow','--magenta','--green','--violet'];
+
+const S = { data:null, sel:new Set(), period:'all', tab:'overview', charts:[], search:'' };
+
+async function load(){
+  const r = await fetch('/api/data'); S.data = await r.json();
+  const names = S.data.customers.map(c=>c.name);
+  if(!S.sel.size) names.forEach(n=>S.sel.add(n)); else for(const n of [...S.sel]) if(!names.includes(n)) S.sel.delete(n);
+  buildFilters(); render();
+}
+
+function allMonths(){ const s=new Set(); S.data.customers.forEach(c=>c.months.forEach(m=>s.add(m))); return [...s].sort(); }
+function phaseOf(m){ for(const c of S.data.customers){ const i=c.months.indexOf(m); if(i>=0) return c.phases[i]; } return 'FORECAST'; }
+const fy = m => { const y=+m.slice(0,4), mo=+m.slice(5,7); const s = mo>=4?y:y-1; return `FY ${s}-${String((s+1)%100).padStart(2,'0')}`; };
+
+function periodOptions(){
+  const ms = allMonths(), o=[['all','Full timeline ('+(ms.length?mLabel(ms[0])+' to '+mLabel(ms[ms.length-1]):'')+')']];
+  [...new Set(ms.map(fy))].forEach(f=>o.push(['fy:'+f, f+' (Apr-Mar)']));
+  [...new Set(ms.map(m=>m.slice(0,4)))].forEach(y=>o.push(['cy:'+y,'Calendar '+y]));
+  o.push(['actual','Actuals to date'],['forecast','Current month + forecast']);
+  ms.forEach(m=>o.push(['m:'+m,'Month: '+mLabel(m)]));
+  return o;
+}
+function periodMonths(){
+  const ms=allMonths(), p=S.period;
+  if(p==='all') return ms;
+  if(p.startsWith('fy:')) return ms.filter(m=>fy(m)===p.slice(3));
+  if(p.startsWith('cy:')) return ms.filter(m=>m.startsWith(p.slice(3)));
+  if(p.startsWith('m:')) return ms.filter(m=>m===p.slice(2));
+  if(p==='actual') return ms.filter(m=>phaseOf(m)==='ACTUAL');
+  return ms.filter(m=>phaseOf(m)!=='ACTUAL');
+}
+
+function buildFilters(){
+  const has = S.data.customers.length>0;
+  $('#filters').hidden=!has; $('#tabs').hidden=!has;
+  $('#src').textContent = 'Reading workbooks from: '+S.data.dataDir+'  |  '+S.data.customers.length+' customer file(s)  |  loaded '+new Date(S.data.loadedAt||Date.now()).toLocaleTimeString();
+  const notes=[]; (S.data.skipped||[]).forEach(s=>notes.push(`Skipped ${esc(s.file)}: ${esc(s.reason)}`));
+  S.data.customers.forEach(c=>c.warnings.forEach(w=>notes.push(esc(c.name)+': '+esc(w))));
+  $('#notes').innerHTML = notes.map(n=>`<div class="note">${n}</div>`).join('');
+  const names=S.data.customers.map(c=>c.name);
+  $('#chips').innerHTML = `<button class="chip" id="allbtn" aria-pressed="${S.sel.size===names.length}">All customers</button>` +
+    names.map((n,i)=>`<button class="chip" data-n="${esc(n)}" aria-pressed="${S.sel.has(n)}"><i style="background:var(${CUST_COLORS[i%CUST_COLORS.length]})"></i>${esc(n)}</button>`).join('');
+  $('#period').innerHTML = periodOptions().map(([v,l])=>`<option value="${esc(v)}" ${v===S.period?'selected':''}>${esc(l)}</option>`).join('');
+}
+
+// ---------- aggregation ----------
+function agg(){
+  const pm = periodMonths(), ALL=S.period==='all', pset={has:m=>ALL||new Set(pm).has(m)}, custs=S.data.customers.filter(c=>S.sel.has(c.name));
+  const rows = custs.map(c=>{
+    const idx = pm.map(m=>c.months.indexOf(m)), w=c.waterfall;
+    const at = (k,i)=> (i>=0 && w[k]) ? w[k][i] : 0;
+    const series = k => idx.map(i=>at(k,i));
+    const sum = k => series(k).reduce((a,b)=>a+b,0);
+    const recvActual = sum('recvAdv')+sum('recvBal'), recvExp = sum('expAdv')+sum('expBal');
+    const paidActual = sum('paidActual'), paidFc = sum('paidAdvFc')+sum('paidCredFc');
+    const closing = series('closing'), net = series('net'), deferred = series('deferred');
+    const last = a => a.length ? a[a.length-1] : 0;
+    // order book (by shipment month / supplier delivery month)
+    const poSales = new Map();
+    c.receipts.forEach(r=>{ if((ALL || (r.shipment && pset.has(r.shipment.slice(0,7)))) && !poSales.has(r.po)) poSales.set(r.po,{po:r.po,style:r.style,qty:r.qty,sales:r.sales,ship:r.shipment||'TBC'}); });
+    const sales = [...poSales.values()].reduce((a,p)=>a+p.sales,0);
+    const costRows = c.payables.filter(p=>p.include!=='N' && pset.has(((p.delivery||p.due)||'').slice(0,7)));
+    const cost = costRows.reduce((a,p)=>a+p.value,0);
+    const recOut = c.receipts.filter(r=>(r.status==='Pending'||r.status==='Overdue') && r.cashMonth && pset.has(String(r.cashMonth).slice(0,7))).reduce((a,r)=>a+r.pending,0);
+    const recOverdue = c.receipts.filter(r=>r.status==='Overdue').reduce((a,r)=>a+r.pending,0);
+    const payOut = c.payables.filter(p=>p.include!=='N' && p.outstanding>0.005 && p.cashMonth && pset.has(String(p.cashMonth).slice(0,7))).reduce((a,p)=>a+p.outstanding,0);
+    const payOverdue = c.payables.filter(p=>p.status==='Overdue').reduce((a,p)=>a+p.outstanding,0);
+    return { name:c.name, c, pm, series, recvActual, recvExp, paidActual, paidFc, closing, net, deferred,
+      endClosing:last(closing), endNet:last(net), minClosing:closing.length?Math.min(...closing):0, peakDeferred:deferred.length?Math.max(...deferred):0,
+      sales, cost, margin:sales-cost, marginPct:(sales&&cost)? (sales-cost)/sales : NaN, orders:[...poSales.values()], costRows,
+      recOut, recOverdue, payOut, payOverdue, netRealised: recvActual-paidActual };
+  });
+  const T = { name:'Total', pm };
+  ['recvActual','recvExp','paidActual','paidFc','sales','cost','margin','recOut','recOverdue','payOut','payOverdue','netRealised','endClosing','endNet','peakDeferred'].forEach(k=>T[k]=rows.reduce((a,r)=>a+r[k],0));
+  T.marginPct = (T.sales&&T.cost)? T.margin/T.sales : NaN;
+  const sumSeries = k => pm.map((_,i)=>rows.reduce((a,r)=>a+r.series(k)[i],0));
+  T.series = sumSeries; T.closing = pm.map((_,i)=>rows.reduce((a,r)=>a+r.closing[i],0));
+  T.net = pm.map((_,i)=>rows.reduce((a,r)=>a+r.net[i],0)); T.deferred = pm.map((_,i)=>rows.reduce((a,r)=>a+r.deferred[i],0));
+  T.minClosing = T.closing.length?Math.min(...T.closing):0;
+  return { rows, T, pm };
+}
+
+// ---------- ui helpers ----------
+const tile=(k,v,n,c)=>`<div class="tile"><div class="k">${k}</div><div class="v ${c||''}">${v}</div><div class="n">${n||''}</div></div>`;
+const kill=()=>{ S.charts.forEach(c=>c.destroy()); S.charts=[]; };
+function chart(id,cfg){
+  const ink2=css('--ink2'), grid=css('--grid');
+  Chart.defaults.font.family='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif'; Chart.defaults.color=ink2;
+  cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false}},cfg.options||{});
+  const sc=cfg.options.scales||{};
+  for(const k of Object.keys(sc)){ sc[k].grid=Object.assign({color:grid,drawTicks:false},sc[k].grid||{}); sc[k].border={display:false}; }
+  cfg.options.scales=sc;
+  cfg.options.plugins=Object.assign({legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,usePointStyle:true}}},cfg.options.plugins||{});
+  S.charts.push(new Chart(document.getElementById(id),cfg));
+}
+const tick = v => fmtK(v);
+const tipMoney = {callbacks:{label:c=>' '+c.dataset.label+': '+fmt(c.parsed.y!==undefined&&c.chart.options.indexAxis!=='y'?c.parsed.y:c.parsed.x)}};
+
+// ---------- views ----------
+function cmpTable(rows,T){
+  const hd=['Customer','Sales (order book)','Supplier cost','Gross margin','Margin %','Cash received','Cash paid','Net cash realised','Receivables o/s','Payables o/s','Lowest closing cash','Overdue receipts'];
+  return `<div class="scroll"><table><thead><tr>${hd.map((h,i)=>`<th class="${i?'':'l'}">${h}</th>`).join('')}</tr></thead><tbody>`+
+    rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${fmt(r.sales)}</td><td>${fmt(r.cost)}</td><td class="${cls(r.margin)}">${fmt(r.margin)}</td><td>${pct(r.marginPct)}</td><td>${fmt(r.recvActual)}</td><td>${fmt(r.paidActual)}</td><td class="${cls(r.netRealised)}">${fmt(r.netRealised)}</td><td>${fmt(r.recOut)}</td><td>${fmt(r.payOut)}</td><td class="${cls(r.minClosing)}">${fmt(r.minClosing)}</td><td>${r.recOverdue?`<span class="tag bad">${fmt(r.recOverdue)}</span>`:'-'}</td></tr>`).join('')+
+    (rows.length>1?`<tr class="tot"><td>Total</td><td>${fmt(T.sales)}</td><td>${fmt(T.cost)}</td><td class="${cls(T.margin)}">${fmt(T.margin)}</td><td>${pct(T.marginPct)}</td><td>${fmt(T.recvActual)}</td><td>${fmt(T.paidActual)}</td><td class="${cls(T.netRealised)}">${fmt(T.netRealised)}</td><td>${fmt(T.recOut)}</td><td>${fmt(T.payOut)}</td><td class="${cls(T.minClosing)}">${fmt(T.minClosing)}</td><td>${T.recOverdue?fmt(T.recOverdue):'-'}</td></tr>`:'')+`</tbody></table></div>`;
+}
+function waterfallTable(A){
+  const {T,pm}=A, s=k=>T.series(k);
+  const rec=s('receipts'), pay=s('payments'), ra=pm.map((_,i)=>s('recvAdv')[i]+s('recvBal')[i]), re=pm.map((_,i)=>s('expAdv')[i]+s('expBal')[i]);
+  const pa=s('paidActual'), pf=pm.map((_,i)=>s('paidAdvFc')[i]+s('paidCredFc')[i]);
+  const row=(l,a,cl)=>`<tr><td>${l}</td>${a.map(v=>`<td class="${cl?cls(v):''}">${v?fmt(v):'-'}</td>`).join('')}<td><b>${fmt(a.reduce((x,y)=>x+y,0))}</b></td></tr>`;
+  const row2=(l,a)=>`<tr class="tot"><td>${l}</td>${a.map(v=>`<td class="${cls(v)}">${fmt(v)}</td>`).join('')}<td></td></tr>`;
+  return `<div class="scroll"><table><thead><tr><th class="l">USD</th>${pm.map(m=>`<th>${mLabel(m)}<br><small>${phaseOf(m)}</small></th>`).join('')}<th>Period</th></tr></thead><tbody>`+
+   row('Received from customers (actual)',ra)+row('Expected customer receipts (forecast)',re)+row('Total receipts',rec)+
+   row('Paid to suppliers (actual)',pa)+row('Supplier payments (forecast, cash-matched)',pf)+row('Total payments',pay)+
+   row2('Closing cash (negative = group funded)',T.closing)+row('Payables deferred (carried forward)',T.deferred)+row2('Net cash position (cash less deferred payables)',T.net)+`</tbody></table></div>`;
+}
+
+function viewOverview(A){
+  const {rows,T,pm}=A;
+  $('#main').innerHTML = `
+  <div class="tiles">
+    ${tile('Sales (order book)',fmtK(T.sales),'confirmed customer orders')}
+    ${tile('Supplier cost',fmtK(T.cost),'confirmed supplier POs')}
+    ${tile('Gross margin',fmtK(T.margin),pct(T.marginPct)+' of sales',cls(T.margin))}
+    ${tile('Cash received',fmtK(T.recvActual),'from customers, to date')}
+    ${tile('Cash paid',fmtK(T.paidActual),'to suppliers, to date')}
+    ${tile('Net cash realised',fmtK(T.netRealised),'received less paid',cls(T.netRealised))}
+    ${tile('Lowest closing cash',fmtK(T.minClosing),T.minClosing<0?'group funding needed':'no funding gap',cls(T.minClosing))}
+    ${tile('Net position, end of period',fmtK(T.endNet),'cash less deferred payables',cls(T.endNet))}
+  </div>
+  <div class="grid">
+    <div class="card wide"><h2>Cash waterfall by month</h2><p class="d">Receipts above the line, supplier payments below, closing cash as the line. Lighter bars are forecast.</p><div class="chartbox"><canvas id="c1"></canvas></div></div>
+    <div class="card"><h2>Closing cash vs net position</h2><p class="d">Net position also subtracts payables pushed into later months.</p><div class="chartbox"><canvas id="c2"></canvas></div></div>
+    <div class="card"><h2>Cash by customer</h2><p class="d">Received vs paid in the selected period.</p><div class="chartbox"><canvas id="c3"></canvas></div></div>
+    <div class="card wide"><h2>Customer comparison</h2><p class="d">One row per selected customer; the total row is the compiled view.</p>${cmpTable(rows,T)}</div>
+  </div>`;
+  const labels=pm.map(mLabel), s=k=>T.series(k), recv=css('--recv'), pay=css('--pay'), surf=css('--surface');
+  const isF = i => phaseOf(pm[i])!=='ACTUAL';
+  const ra=pm.map((_,i)=>s('recvAdv')[i]+s('recvBal')[i]), re=pm.map((_,i)=>s('expAdv')[i]+s('expBal')[i]);
+  const pa=s('paidActual').map(v=>-v), pf=pm.map((_,i)=>-(s('paidAdvFc')[i]+s('paidCredFc')[i]));
+  chart('c1',{data:{labels,datasets:[
+    {type:'bar',label:'Received (actual)',data:ra,backgroundColor:recv,stack:'in',borderColor:surf,borderWidth:2,borderRadius:4},
+    {type:'bar',label:'Expected receipts',data:re,backgroundColor:recv+'66',stack:'in',borderColor:recv,borderWidth:1,borderRadius:4},
+    {type:'bar',label:'Paid (actual)',data:pa,backgroundColor:pay,stack:'out',borderColor:surf,borderWidth:2,borderRadius:4},
+    {type:'bar',label:'Payments (forecast)',data:pf,backgroundColor:pay+'66',stack:'out',borderColor:pay,borderWidth:1,borderRadius:4},
+    {type:'line',label:'Closing cash',data:T.closing,borderColor:css('--ink'),backgroundColor:css('--ink'),borderWidth:2,pointRadius:3,tension:0}
+  ]},options:{scales:{y:{ticks:{callback:tick}},x:{stacked:true,grid:{display:false}}},plugins:{tooltip:tipMoney}}});
+  chart('c2',{type:'line',data:{labels,datasets:[
+    {label:'Closing cash',data:T.closing,borderColor:recv,backgroundColor:recv,borderWidth:2,pointRadius:3,tension:0},
+    {label:'Net position',data:T.net,borderColor:pay,backgroundColor:pay,borderWidth:2,pointRadius:3,tension:0,borderDash:[6,4]}]},
+    options:{scales:{y:{ticks:{callback:tick}},x:{grid:{display:false}}},plugins:{tooltip:tipMoney}}});
+  chart('c3',{type:'bar',data:{labels:rows.map(r=>r.name),datasets:[
+    {label:'Received',data:rows.map(r=>r.recvActual),backgroundColor:recv,borderRadius:4},
+    {label:'Paid',data:rows.map(r=>r.paidActual),backgroundColor:pay,borderRadius:4}]},
+    options:{scales:{y:{ticks:{callback:tick}},x:{grid:{display:false}}},plugins:{tooltip:tipMoney}}});
+}
+
+function viewProfit(A){
+  const {rows,T,pm}=A, recv=css('--recv'), pay=css('--pay');
+  const ordersAll = rows.flatMap(r=>r.orders.map(o=>({...o,cust:r.name}))).sort((a,b)=>a.ship<b.ship?-1:1);
+  $('#main').innerHTML = `
+  <div class="tiles">
+    ${tile('Sales (order book)',fmtK(T.sales),ordersAll.length+' customer POs')}
+    ${tile('Supplier cost',fmtK(T.cost),'PO value of confirmed supplier orders')}
+    ${tile('Gross margin',fmtK(T.margin),pct(T.marginPct),cls(T.margin))}
+    ${tile('Cash margin to date',fmtK(T.netRealised),'received less paid',cls(T.netRealised))}
+    ${tile('Still to collect',fmtK(T.recOut),'pending + overdue receipts')}
+    ${tile('Still to pay',fmtK(T.payOut),'outstanding supplier payables')}
+    ${tile('Margin if all settles',fmtK(T.netRealised+T.recOut-T.payOut),'cash margin + collect - pay',cls(T.netRealised+T.recOut-T.payOut))}
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Sales vs supplier cost by customer</h2><p class="d">Margin % is in the table below.</p><div class="chartbox"><canvas id="p1"></canvas></div></div>
+    <div class="card"><h2>Order book by month</h2><p class="d">Sales by customer shipment month; cost by supplier delivery-start month.</p><div class="chartbox"><canvas id="p2"></canvas></div></div>
+    <div class="card wide"><h2>Monthly profitability</h2><p class="d">Month by month for the selected customers: order book (sales by shipment month, cost by supplier delivery month) and cash.</p><div id="mtab"></div></div>
+    <div class="card wide"><h2>Customer profitability</h2><p class="d">Gross margin = customer order value less supplier PO value. Cash margin = cash received less cash paid so far.</p>${cmpTable(rows,T)}</div>
+    <div class="card wide"><h2>Customer orders in period</h2><div class="scroll"><table><thead><tr><th class="l">Customer</th><th class="l">PO</th><th class="l">Style</th><th>Qty</th><th>Shipment</th><th>Sales value</th></tr></thead><tbody>${ordersAll.map(o=>`<tr><td>${esc(o.cust)}</td><td class="l">${esc(o.po)}</td><td class="l">${esc(o.style)}</td><td>${o.qty.toLocaleString()}</td><td>${o.ship}</td><td>${fmt(o.sales)}</td></tr>`).join('')}</tbody></table></div></div>
+  </div>`;
+  chart('p1',{type:'bar',data:{labels:rows.map(r=>r.name),datasets:[
+    {label:'Sales',data:rows.map(r=>r.sales),backgroundColor:recv,borderRadius:4},
+    {label:'Supplier cost',data:rows.map(r=>r.cost),backgroundColor:pay,borderRadius:4}]},
+    options:{scales:{y:{ticks:{callback:tick}},x:{grid:{display:false}}},plugins:{tooltip:tipMoney}}});
+  const sm=pm.map(m=>rows.reduce((a,r)=>a+r.orders.filter(o=>o.ship.slice(0,7)===m).reduce((x,o)=>x+o.sales,0),0));
+  const cm=pm.map(m=>rows.reduce((a,r)=>a+r.costRows.filter(p=>((p.delivery||p.due)||'').slice(0,7)===m).reduce((x,p)=>x+p.value,0),0));
+  const ra=T.series('recvAdv').map((v,i)=>v+T.series('recvBal')[i]), pa=T.series('paidActual'), fc=T.series('paidAdvFc').map((v,i)=>v+T.series('paidCredFc')[i]);
+  const exp=T.series('expAdv').map((v,i)=>v+T.series('expBal')[i]);
+  const cell=v=>`<td class="${cls(v)}">${v?fmt(v):'-'}</td>`, plainc=v=>`<td>${v?fmt(v):'-'}</td>`;
+  const tr=pm.map((m,i)=>{const g=sm[i]-cm[i]; return `<tr><td>${mLabel(m)} <small>${phaseOf(m)}</small></td>${plainc(sm[i])}${plainc(cm[i])}${cell(g)}<td>${sm[i]&&cm[i]?pct(g/sm[i]):'-'}</td>${plainc(ra[i]+exp[i])}${plainc(pa[i]+fc[i])}${cell(ra[i]+exp[i]-pa[i]-fc[i])}${cell(T.closing[i])}</tr>`}).join('');
+  const sum=a=>a.reduce((x,y)=>x+y,0), tg=sum(sm)-sum(cm);
+  $('#mtab').innerHTML=`<div class="scroll"><table><thead><tr><th class="l">Month</th><th>Sales</th><th>Supplier cost</th><th>Gross margin</th><th>Margin %</th><th>Cash in (actual + expected)</th><th>Cash out (actual + forecast)</th><th>Net cash</th><th>Closing cash</th></tr></thead><tbody>${tr}<tr class="tot"><td>Total</td>${plainc(sum(sm))}${plainc(sum(cm))}${cell(tg)}<td>${sum(sm)&&sum(cm)?pct(tg/sum(sm)):'-'}</td>${plainc(sum(ra)+sum(exp))}${plainc(sum(pa)+sum(fc))}${cell(sum(ra)+sum(exp)-sum(pa)-sum(fc))}<td></td></tr></tbody></table></div>`;
+  chart('p2',{type:'bar',data:{labels:pm.map(mLabel),datasets:[
+    {label:'Sales (shipment month)',data:sm,backgroundColor:recv,borderRadius:4},
+    {label:'Supplier cost (delivery month)',data:cm,backgroundColor:pay,borderRadius:4}]},
+    options:{scales:{y:{ticks:{callback:tick}},x:{grid:{display:false}}},plugins:{tooltip:tipMoney}}});
+}
+
+function viewWC(A){
+  const {rows,T}=A;
+  $('#main').innerHTML = `
+  <div class="tiles">
+    ${tile('Lowest closing cash',fmtK(T.minClosing),T.minClosing<0?'group funding needed':'no funding gap',cls(T.minClosing))}
+    ${tile('Peak deferred payables',fmtK(T.peakDeferred),'payments pushed to later months')}
+    ${tile('Receivables outstanding',fmtK(T.recOut),'pending + overdue')}
+    ${tile('Overdue receipts',fmtK(T.recOverdue),'chase first',T.recOverdue?'neg':'')}
+    ${tile('Payables outstanding',fmtK(T.payOut),'advance + credit')}
+    ${tile('Overdue payables',fmtK(T.payOverdue),'past due date',T.payOverdue?'neg':'')}
+    ${tile('Net position, end of period',fmtK(T.endNet),'cash less deferred payables',cls(T.endNet))}
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Receipt status by customer</h2><p class="d">Customer tranches by status, in USD.</p><div class="chartbox"><canvas id="w1"></canvas></div></div>
+    <div class="card"><h2>Largest outstanding supplier payables</h2><p class="d">Top 10 suppliers still to be paid.</p><div class="chartbox"><canvas id="w2"></canvas></div></div>
+    <div class="card wide"><h2>Monthly cash position</h2><p class="d">Same layout as the Dashboard sheet in the workbook, summed over the selected customers.</p>${waterfallTable(A)}</div>
+  </div>`;
+  const st=['Received','Pending','Overdue','Unscheduled (TBC)'], col=[css('--aqua'),css('--recv'),css('--bad'),css('--neutral')];
+  chart('w1',{type:'bar',data:{labels:rows.map(r=>r.name),datasets:st.map((s,i)=>({label:s,backgroundColor:col[i],borderColor:css('--surface'),borderWidth:2,borderRadius:4,
+    data:rows.map(r=>r.c.receipts.filter(x=>(x.status.startsWith('Unscheduled')?'Unscheduled (TBC)':x.status)===s).reduce((a,x)=>a+x.amount,0))}))},
+    options:{indexAxis:'y',scales:{x:{stacked:true,ticks:{callback:tick}},y:{stacked:true,grid:{display:false}}},plugins:{tooltip:tipMoney}}});
+  const bySup=new Map();
+  rows.forEach(r=>r.c.payables.filter(p=>p.outstanding>0.005&&p.include!=='N').forEach(p=>{ const k=p.supplier; const o=bySup.get(k)||{adv:0,cr:0}; if(p.cls==='Advance')o.adv+=p.outstanding; else o.cr+=p.outstanding; bySup.set(k,o); }));
+  const top=[...bySup.entries()].sort((a,b)=>(b[1].adv+b[1].cr)-(a[1].adv+a[1].cr)).slice(0,10);
+  chart('w2',{type:'bar',data:{labels:top.map(t=>t[0].length>26?t[0].slice(0,25)+'…':t[0]),datasets:[
+    {label:'Advance',data:top.map(t=>t[1].adv),backgroundColor:css('--pay'),borderColor:css('--surface'),borderWidth:2,borderRadius:4},
+    {label:'Credit',data:top.map(t=>t[1].cr),backgroundColor:css('--violet'),borderColor:css('--surface'),borderWidth:2,borderRadius:4}]},
+    options:{indexAxis:'y',scales:{x:{stacked:true,ticks:{callback:tick}},y:{stacked:true,grid:{display:false}}},plugins:{tooltip:tipMoney}}});
+}
+
+function viewDetail(A){
+  const q=S.search.toLowerCase();
+  const rec=A.rows.flatMap(r=>r.c.receipts.map(x=>({...x,cust:r.name}))).filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q));
+  const pay=A.rows.flatMap(r=>r.c.payables.map(x=>({...x,cust:r.name}))).filter(x=>!q||JSON.stringify(x).toLowerCase().includes(q));
+  const tag=s=>{const c=s==='Overdue'?'bad':(s==='Received'||s==='Settled')?'good':s.startsWith('Unsched')?'warn':''; return `<span class="tag ${c}">${esc(s)}</span>`;};
+  $('#main').innerHTML = `
+  <div style="margin-bottom:12px"><input type="search" id="q" placeholder="Search PO, style, supplier, status…" value="${esc(S.search)}"></div>
+  <div class="grid">
+   <div class="card wide"><h2>Customer receipts (${rec.length})</h2><p class="d">Update Received Amount / Received Date in the workbook when funds arrive, then press Refresh.</p><div class="scroll"><table><thead><tr><th class="l">Customer</th><th class="l">PO</th><th class="l">Style</th><th class="l">Tranche</th><th>Scheduled</th><th>Tranche amount</th><th>Received</th><th>Received date</th><th>Pending</th><th>Days overdue</th><th class="l">Status</th></tr></thead><tbody>${rec.map(x=>`<tr><td>${esc(x.cust)}</td><td class="l">${esc(x.po)}</td><td class="l">${esc(x.style)}</td><td class="l">${esc(x.tranche)}</td><td>${x.scheduled||'-'}</td><td>${fmt(x.amount)}</td><td>${x.received?fmt(x.received):'-'}</td><td>${x.receivedDate||'-'}</td><td>${x.pending?fmt(x.pending):'-'}</td><td>${x.daysOverdue||'-'}</td><td class="l">${tag(x.status)}</td></tr>`).join('')}</tbody></table></div></div>
+   <div class="card wide"><h2>Supplier payables (${pay.length})</h2><p class="d">Update Paid (USD) / Paid Date in the workbook when you make a payment, then press Refresh.</p><div class="scroll"><table><thead><tr><th class="l">Customer</th><th class="l">Supplier</th><th class="l">PO</th><th class="l">Class</th><th>Due</th><th>PO value</th><th>Paid</th><th>Paid date</th><th>Outstanding</th><th>Days overdue</th><th class="l">Status</th></tr></thead><tbody>${pay.map(x=>`<tr><td>${esc(x.cust)}</td><td class="l">${esc(x.supplier)}</td><td class="l">${esc(x.po)}</td><td class="l">${esc(x.cls)}</td><td>${x.due||'-'}</td><td>${fmt(x.value)}</td><td>${x.paid?fmt(x.paid):'-'}</td><td>${x.paidDate||'-'}</td><td>${x.outstanding>0.005?fmt(x.outstanding):'-'}</td><td>${x.daysOverdue||'-'}</td><td class="l">${tag(x.status)}</td></tr>`).join('')}</tbody></table></div></div>
+  </div>`;
+  $('#q').addEventListener('input',e=>{S.search=e.target.value; const p=e.target.selectionStart; viewDetail(agg()); const n=$('#q'); n.focus(); n.setSelectionRange(p,p);});
+}
+
+function render(){
+  kill();
+  if(!S.data.customers.length){
+    $('#main').innerHTML=`<div class="empty"><h2>No customer workbooks found</h2><p>Put files named <code>Treasury_Cash_Dashboard_&lt;Customer&gt;.xlsx</code> in<br><code>${esc(S.data.dataDir)}</code><br>(or change <code>dataDir</code> in config.json) and press Refresh.</p></div>`; return;
+  }
+  if(!S.sel.size){ $('#main').innerHTML='<div class="empty">Select at least one customer.</div>'; return; }
+  const A=agg();
+  ({overview:viewOverview,profit:viewProfit,wc:viewWC,detail:viewDetail})[S.tab](A);
+}
+
+document.addEventListener('click',e=>{
+  const chip=e.target.closest('.chip'), tab=e.target.closest('#tabs button');
+  if(chip){
+    const names=S.data.customers.map(c=>c.name);
+    if(chip.id==='allbtn'){ if(S.sel.size===names.length) { S.sel=new Set([names[0]]);} else names.forEach(n=>S.sel.add(n)); }
+    else { const n=chip.dataset.n; if(S.sel.has(n)){ if(S.sel.size>1) S.sel.delete(n); } else S.sel.add(n); }
+    buildFilters(); render();
+  }
+  if(tab){ S.tab=tab.dataset.tab; document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b===tab)); render(); }
+});
+$('#period').addEventListener('change',e=>{S.period=e.target.value; render();});
+$('#refresh').addEventListener('click',load);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>S.data&&render());
+load();
+setInterval(()=>{ if(!document.hidden) fetch('/api/data').then(r=>r.json()).then(d=>{ const sig=x=>x.customers.map(c=>c.file+c.modified).join('|'); if(S.data&&sig(d)!==sig(S.data)){ S.data=d; load(); } }); },60000);
+</script>
+</body>
+</html>
