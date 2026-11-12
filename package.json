@@ -1,0 +1,17 @@
+{
+  "name": "treasury-cash-dashboard",
+  "version": "1.0.0",
+  "description": "Customer cash / profitability / working-capital dashboard fed by Excel workbooks",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chart.js": "^4.6.1",
+    "exceljs": "^4.4.0",
+    "express": "^5.3.0"
+  }
+}
